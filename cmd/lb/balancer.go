@@ -78,9 +78,9 @@ func (b *Balancer) runChecker() {
 	for i := range b.pool {
 		server := &b.pool[i]
 		go func() {
-			b.checkHealth(server)
+			server.isWorking = b.hc.health(server.dst)
 			for range time.Tick(10 * time.Second) {
-				b.checkHealth(server)
+				server.isWorking = b.hc.health(server.dst)
 			}
 		}()
 	}
@@ -160,12 +160,6 @@ func (b *Balancer) forward(server *serverType, rw http.ResponseWriter, r *http.R
 func main() {
 	flag.Parse()
 	SetupBalancer()
-}
-
-func (b *Balancer) checkHealth(server *serverType) {
-	isWorking := b.hc.health(server.dst)
-	server.isWorking = isWorking
-	log.Println(server, b.hc.health(server.dst))
 }
 
 func (b *Balancer) getIndex() (int, error) {
