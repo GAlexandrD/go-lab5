@@ -81,6 +81,7 @@ func (b *Balancer) runChecker() {
 			server.isWorking = b.hc.health(server.dst)
 			for range time.Tick(10 * time.Second) {
 				server.isWorking = b.hc.health(server.dst)
+				log.Println(server)
 			}
 		}()
 	}
