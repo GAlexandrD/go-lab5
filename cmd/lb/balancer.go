@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/roman-mazur/design-practice-2-template/httptools"
@@ -142,6 +143,7 @@ func (b *Balancer) forward(server *serverType, rw http.ResponseWriter, r *http.R
 		}
 		if *traceEnabled {
 			rw.Header().Set("lb-from", server.dst)
+			rw.Header().Set("lb-size", strconv.Itoa(length))
 		}
 		log.Println("fwd", resp.StatusCode, resp.Request.URL)
 		rw.WriteHeader(resp.StatusCode)
