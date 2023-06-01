@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -38,11 +39,31 @@ func TestBalancer(t *testing.T) {
 		serv, size := sendAndGetInfo(t)
 		resps[serv] += size
 	}
-	assert.Equal(t, 3, len(resps), "unknown server used")
+	assert.Equal(t, 3, len(resps), "wrong amount of servers")
 	serv := findMinimal(resps)
 	s, sz := sendAndGetInfo(t)
 	resps[s] += sz
 	assert.Equal(t, serv, s, "balancer choose wrong server")
+}
+
+type respType struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+func sendAndGetInfo(t *testing.T) (string, int) {
+	resp, err := client.Get(fmt.Sprintf("%s/api/v1/some-data?key=team-name", baseAddress))
+	assert.Nil(t, err, err)
+
+	// check return data from db
+	var res respType
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	assert.Equal(t, "team-name", res.Key, "server didn't returned data from db")
+	assert.NotEqual(t, "", res.Value, "server didn't returned data from db")
+
+	from := resp.Header.Get("lb-from")
+	size, _ := strconv.Atoi(resp.Header.Get("lb-size"))
+	return from, size
 }
 
 func findMinimal(resps map[string]int) string {
@@ -64,19 +85,11 @@ func findMinimal(resps map[string]int) string {
 	return serv
 }
 
-func sendAndGetInfo(t *testing.T) (string, int) {
-	resp, err := client.Get(fmt.Sprintf("%s/api/v1/some-data", baseAddress))
-	assert.Nil(t, err, err)
-	from := resp.Header.Get("lb-from")
-	size, _ := strconv.Atoi(resp.Header.Get("lb-size"))
-	return from, size
-}
-
 func BenchmarkBalancer(b *testing.B) {
 	client := http.Client{Timeout: 10 * time.Second}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			resp, err := client.Get("http://localhost:8090/api/v1/some-data")
+			resp, err := client.Get("http://localhost:8090/api/v1/some-data?key=team-name")
 			if err != nil {
 				b.Fatal(err)
 			}
