@@ -40,6 +40,7 @@ type Db struct {
 
 func NewDb(dir string, segmLimit int64) (*Db, error) {
 	outputPath := filepath.Join(dir, outFileName)
+	os.MkdirAll(dir, 0o600)
 	f, err := os.OpenFile(outputPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
 	if err != nil {
 		return nil, err
