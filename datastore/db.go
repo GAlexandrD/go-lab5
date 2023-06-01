@@ -34,6 +34,7 @@ type Db struct {
 	limit     int64
 	index     hashIndex
 	segments  []hashIndex
+	segCh     chan hashIndex
 }
 
 func NewDb(dir string, segmLimit int64) (*Db, error) {
@@ -49,8 +50,10 @@ func NewDb(dir string, segmLimit int64) (*Db, error) {
 		dir:     dir,
 		index:   make(hashIndex),
 		limit:   segmLimit,
+		segCh:   make(chan hashIndex),
 	}
 	err = db.recover()
+	go db.merger(db.segCh)
 	if err != nil && err != io.EOF {
 		return nil, err
 	}
@@ -223,6 +226,10 @@ func (db *Db) addSegment() error {
 	db.segments = append(db.segments, db.index)
 	db.index = make(hashIndex)
 	db.mu.Unlock()
+	if len(db.segments) > 1 {
+		db.segCh <- db.segments[0]
+		db.segCh <- db.segments[1]
+	}
 	return nil
 }
 
