@@ -30,8 +30,8 @@ func TestDb_Put(t *testing.T) {
 
 	t.Run("put/get", func(t *testing.T) {
 		for _, pair := range pairs {
-			err := db.Put(pair[0], pair[1])
-			assert.Nil(t, err, "Cannot put %s: %s", pairs[0], err)
+			db.Put(pair[0], pair[1])
+			time.Sleep(time.Millisecond * 10)
 
 			value, err := db.Get(pair[0])
 			assert.Nil(t, err, "Cannot get %s: %s", pairs[0], err)
@@ -45,9 +45,9 @@ func TestDb_Put(t *testing.T) {
 
 	t.Run("file growth", func(t *testing.T) {
 		for _, pair := range pairs {
-			err := db.Put(pair[0], pair[1])
-			assert.Nil(t, err, "Cannot put %s: %s", pairs[0], err)
+			db.Put(pair[0], pair[1])
 		}
+		time.Sleep(time.Millisecond * 10)
 		outInfo, err := outFile.Stat()
 		assert.Nil(t, err, err)
 		assert.Equal(t, size1*2, outInfo.Size(), "Unexpected size (%d vs %d)", size1, outInfo.Size())
@@ -80,8 +80,8 @@ func TestSegments(t *testing.T) {
 	segment := []string{"key", "Lorem, ipsum dolor.Lorem, ipsum dolor.Lorem, ipsum dolor.Lorem, ipsum dolor. Lorem, ipsum dolor.Lorem, ipsum dolor.Lorem, ipsum dolor.Lorem, ipsum dolor."}
 
 	t.Run("create segments", func(t *testing.T) {
-		err = db.Put(segment[0], segment[1])
-		assert.Nil(t, err, err)
+		db.Put(segment[0], segment[1])
+		time.Sleep(time.Millisecond * 10)
 		assert.Equal(t, 1, len(db.segments), "segments` index has wrong length expected %d, got %d", 1, len(db.segments))
 		filePath := path.Join(db.dir, "0")
 		_, err = os.Stat(filePath)
@@ -89,8 +89,7 @@ func TestSegments(t *testing.T) {
 	})
 
 	t.Run("merge segments", func(t *testing.T) {
-		err = db.Put(segment[0], segment[1]) // add segment
-		assert.Nil(t, err, err)
+		db.Put(segment[0], segment[1])     // add segment
 		time.Sleep(time.Millisecond * 100) // wait merge
 		assert.Equal(t, 1, len(db.segments), "index has wrong length expected %d, got %d", 1, len(db.segments))
 		filePath := db.getSPath(1)
@@ -116,10 +115,9 @@ func TestSegments(t *testing.T) {
 
 	t.Run("Put/Get with merging", func(t *testing.T) {
 		for _, pair := range pairs {
-			err := db.Put(pair[0], pair[1])
-			assert.Nil(t, err, "Cannot put %s: %s", pairs[0], err)
+			db.Put(pair[0], pair[1])
 		}
-
+		time.Sleep(time.Millisecond * 10)
 		// before merging
 		for _, pair := range assertPairs {
 			value, err := db.Get(pair[0])
