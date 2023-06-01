@@ -20,7 +20,7 @@ func TestDb_Put(t *testing.T) {
 	assert.Nil(t, err, err)
 	defer db.Close()
 
-	pairs := [][]string {
+	pairs := [][]string{
 		{"key1", "value1"},
 		{"key2", "value2"},
 		{"key3", "value3"},
@@ -50,7 +50,7 @@ func TestDb_Put(t *testing.T) {
 		}
 		outInfo, err := outFile.Stat()
 		assert.Nil(t, err, err)
-		assert.Equal(t, size1 * 2, outInfo.Size(), "Unexpected size (%d vs %d)", size1, outInfo.Size())
+		assert.Equal(t, size1*2, outInfo.Size(), "Unexpected size (%d vs %d)", size1, outInfo.Size())
 	})
 
 	t.Run("new db process", func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestDb_Put(t *testing.T) {
 	})
 }
 
-func TestSegments (t *testing.T) {
+func TestSegments(t *testing.T) {
 	dir, err := ioutil.TempDir("", "test-db")
 	assert.Nil(t, err, err)
 	defer os.RemoveAll(dir)
@@ -89,16 +89,16 @@ func TestSegments (t *testing.T) {
 	})
 
 	t.Run("merge segments", func(t *testing.T) {
-		err = db.Put(segment[0], segment[1])	// add segment
+		err = db.Put(segment[0], segment[1]) // add segment
 		assert.Nil(t, err, err)
-		time.Sleep(time.Millisecond*100) // wait merge
+		time.Sleep(time.Millisecond * 100) // wait merge
 		assert.Equal(t, 1, len(db.segments), "index has wrong length expected %d, got %d", 1, len(db.segments))
 		filePath := db.getSPath(1)
 		_, err = os.Stat(filePath)
 		assert.NotNil(t, err, "segments` files wasn`t merged")
 	})
 
-	pairs := [][]string {
+	pairs := [][]string{
 		{"a", "a1"},
 		{"b", "b1"},
 		{"c", "c1"},
@@ -108,7 +108,7 @@ func TestSegments (t *testing.T) {
 		{"b", "b2"},
 	}
 
-	assertPairs := [][]string {
+	assertPairs := [][]string{
 		{"a", "a2"},
 		{"b", "b2"},
 		{"c", "c1"},
@@ -119,15 +119,15 @@ func TestSegments (t *testing.T) {
 			err := db.Put(pair[0], pair[1])
 			assert.Nil(t, err, "Cannot put %s: %s", pairs[0], err)
 		}
-	
+
 		// before merging
 		for _, pair := range assertPairs {
 			value, err := db.Get(pair[0])
 			assert.Nil(t, err, "Cannot get %s: %s", pairs[0], err)
 			assert.Equal(t, pair[1], value, "Bad value returned expected %s, got %s", pair[1], value)
 		}
-	
-		time.Sleep(time.Millisecond*100)
+
+		time.Sleep(time.Millisecond * 100)
 
 		//after merging
 		assert.Equal(t, 1, len(db.segments), "segments` hashIndexes wasn`t merged")

@@ -72,7 +72,7 @@ func (db *Db) recover() error {
 		db.index = index
 		db.outOffset = offset
 	}
-	
+
 	for i := 0; ; i++ {
 		_, err := os.Stat(db.getSPath(i))
 		if err != nil {
