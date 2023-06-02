@@ -68,7 +68,8 @@ func mergeFiles(mi mergeIndex, outPath string) (hashIndex, error) {
 		}
 
 		reader := bufio.NewReader(file)
-		value, err := readValue(reader)
+		record, err := readRecord(reader)
+		value := readValue(record)
 		if err != nil {
 			return nil, err
 		}

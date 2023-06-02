@@ -20,11 +20,26 @@ func TestEntry_Encode(t *testing.T) {
 func TestReadValue(t *testing.T) {
 	e := entry{"key", "test-value"}
 	data := e.Encode()
-	v, err := readValue(bufio.NewReader(bytes.NewReader(data)))
+	record, err := readRecord(bufio.NewReader(bytes.NewReader(data)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v != "test-value" {
-		t.Errorf("Got bat value [%s]", v)
+	value := readValue(record)
+	if value != "test-value" {
+		t.Errorf("Got bat value [%s]", value)
+	}
+}
+
+func TestHashCheck(t *testing.T) {
+	e := entry{"key", "test-value"}
+	data := e.Encode()
+	ok := checkHash(data)
+	if !ok {
+		t.Errorf("hashCheck returned false on valid record")
+	}
+	data[9] = 0
+	ok = checkHash(data)
+	if ok {
+		t.Errorf("hashCheck passed corrupted data")
 	}
 }

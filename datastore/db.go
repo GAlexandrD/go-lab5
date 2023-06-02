@@ -3,6 +3,7 @@ package datastore
 import (
 	"bufio"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -165,9 +166,13 @@ func (db *Db) Get(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	reader := bufio.NewReader(file)
-	value, err := readValue(reader)
+	record, err := readRecord(reader)
+	ok = checkHash(record)
+	if !ok {
+		return "", errors.New("wrong hash sum")
+	}
+	value := readValue(record)
 	if err != nil {
 		return "", err
 	}
