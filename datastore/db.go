@@ -37,6 +37,7 @@ type Db struct {
 	segments  []hashIndex
 	segCh     chan hashIndex
 	putCh     chan entry
+	putRes		chan error
 }
 
 func NewDb(dir string, segmLimit int64) (*Db, error) {
@@ -55,6 +56,7 @@ func NewDb(dir string, segmLimit int64) (*Db, error) {
 		limit:   segmLimit,
 		segCh:   make(chan hashIndex),
 		putCh:   make(chan entry),
+		putRes:  make(chan error),
 	}
 	err = db.recover()
 	go db.merger(db.segCh)
@@ -198,12 +200,13 @@ func (db *Db) getFromSegments(key string) (string, int64, bool) {
 	return outPath, position, ok
 }
 
-func (db *Db) Put(key, value string) {
+func (db *Db) Put(key, value string) (error) {
 	e := entry{
 		key:   key,
 		value: value,
 	}
 	db.putCh <- e
+	return <- db.putRes
 }
 
 func (db *Db) putRoutine(ch chan entry) {
@@ -213,7 +216,7 @@ func (db *Db) putRoutine(ch chan entry) {
 		n, err := db.out.Write(e.Encode())
 		if err != nil {
 			db.mu.Unlock()
-			fmt.Printf("Error occured during put operation: %s", err.Error())
+			db.putRes <- err
 			continue
 		}
 		db.index[e.key] = db.outOffset
@@ -222,9 +225,7 @@ func (db *Db) putRoutine(ch chan entry) {
 		if db.outOffset > db.limit {
 			err = db.addSegment()
 		}
-		if err != nil {
-			fmt.Printf("Error occured during addSegment operation: %s", err.Error())
-		}
+		db.putRes <- err
 	}
 }
 
