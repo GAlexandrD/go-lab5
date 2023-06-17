@@ -26,6 +26,11 @@ type mergeIndex map[string]mergeItem
 
 type hashIndex map[string]int64
 
+type putMessage struct {
+	res chan error
+	entry entry 
+}
+
 type Db struct {
 	out       *os.File
 	dir       string
@@ -36,9 +41,9 @@ type Db struct {
 	index     hashIndex
 	segments  []hashIndex
 	segCh     chan hashIndex
-	putCh     chan entry
-	putRes		chan error
+	putCh     chan putMessage
 }
+
 
 func NewDb(dir string, segmLimit int64) (*Db, error) {
 	outputPath := filepath.Join(dir, outFileName)
@@ -55,8 +60,7 @@ func NewDb(dir string, segmLimit int64) (*Db, error) {
 		index:   make(hashIndex),
 		limit:   segmLimit,
 		segCh:   make(chan hashIndex),
-		putCh:   make(chan entry),
-		putRes:  make(chan error),
+		putCh:   make(chan putMessage),
 	}
 	err = db.recover()
 	go db.merger(db.segCh)
@@ -205,27 +209,29 @@ func (db *Db) Put(key, value string) (error) {
 		key:   key,
 		value: value,
 	}
-	db.putCh <- e
-	return <- db.putRes
+	res := make(chan error)
+	message := putMessage{ res: res, entry: e}
+	db.putCh <- message
+	return <- message.res
 }
 
-func (db *Db) putRoutine(ch chan entry) {
+func (db *Db) putRoutine(ch chan putMessage) {
 	for {
 		e := <-ch
 		db.mu.Lock()
-		n, err := db.out.Write(e.Encode())
+		n, err := db.out.Write(e.entry.Encode())
 		if err != nil {
 			db.mu.Unlock()
-			db.putRes <- err
+			e.res <- err
 			continue
 		}
-		db.index[e.key] = db.outOffset
+		db.index[e.entry.key] = db.outOffset
 		db.outOffset += int64(n)
 		db.mu.Unlock()
 		if db.outOffset > db.limit {
 			err = db.addSegment()
 		}
-		db.putRes <- err
+		e.res <- err
 	}
 }
 
